@@ -1,46 +1,51 @@
 package web_scraper
 
 import (
-	"bytes"
 	"encoding/xml"
 	"fmt"
+	"github.com/google/brotli/go/cbrotli"
 	"golang.org/x/net/html/charset"
-	"io"
 	"net/http"
+	"strings"
 )
 
+const FantasySharksURL = "https://www.fantasysharks.com/apps/bert/forecasts/adp.php?Position=97&xml=1&adpsort=99&Segment=746"
+
 type WebScraper interface {
-	GetPlayersFromSource(url string) (ADP, error)
-	PrintPlayers(ADP)
+	GetPlayersFromSource(url string) (Adp, error)
+	PrintPlayers(Adp)
 }
 
 type WebScraperImpl struct {
 	http.Client
 }
-type ADP struct {
-	adp     string `xml:"adp"`
-	Players []Player
+type Adp struct {
+	XMLName xml.Name `xml:"adp"`
+	Text    string   `xml:",chardata"`
+	Players []Player `xml:"player"`
 }
-
 type Player struct {
-	Rank     string `xml:"Rank"`
-	ID       string `xml:"ID"`
-	Name     string `xml:"Name"`
-	Position string `xml:"Position"`
-	Team     string `xml:"Team"`
-	Bye      string `xml:"Bye"`
-	ADP      string `xml:"ADP"`
-	StdDev   string `xml:"StdDev"`
-	MFL      string `xml:"MFL"`
-	RTS      string `xml:"RTS"`
-	FFCalc   string `xml:"FFCalc"`
+	Text      string `xml:",chardata"`
+	Rank      string `xml:"Rank,attr"`
+	ID        string `xml:"ID,attr"`
+	FullName  string `xml:"Name,attr"`
+	FirstName string
+	LastName  string
+	Position  string `xml:"Position,attr"`
+	Team      string `xml:"Team,attr"`
+	Bye       string `xml:"Bye,attr"`
+	ADP       string `xml:"ADP,attr"`
+	StdDev    string `xml:"StdDev,attr"`
+	MFL       string `xml:"MFL,attr"`
+	RTS       string `xml:"RTS,attr"`
+	FFCalc    string `xml:"FFCalc,attr"`
 }
 
-func (w *WebScraperImpl) GetPlayersFromSource(myUrl string) (ADP, error) {
-	var players ADP
+func (w *WebScraperImpl) GetPlayersFromSource(myUrl string) (Adp, error) {
+	var adp Adp
 	request, err := http.NewRequest(http.MethodGet, myUrl, nil)
 	if err != nil {
-		return ADP{}, err
+		return Adp{}, err
 	}
 	request.Header.Set("Accept", "*/*")
 	request.Header.Set("Accept-Encoding", "br")
@@ -51,44 +56,47 @@ func (w *WebScraperImpl) GetPlayersFromSource(myUrl string) (ADP, error) {
 	request.Header.Set("Host", "www.fantasysharks.com")
 
 	if err != nil {
-		return ADP{}, err
+		return Adp{}, err
 	}
 	request.Close = true
 	resp, err := w.Client.Do(request)
-	fmt.Println(resp.Header)
-
 	if err != nil {
 		fmt.Println("error on do")
-		return ADP{}, err
+		return Adp{}, err
 	}
 	if resp.StatusCode != http.StatusOK {
-		return ADP{}, fmt.Errorf("recieved status code: %d", resp.StatusCode)
+		return Adp{}, fmt.Errorf("recieved status code: %d", resp.StatusCode)
 	}
-	content, err := io.ReadAll(resp.Body)
-	defer resp.Body.Close()
-	fmt.Println(string(content))
-	if err != nil {
-		fmt.Println("error on readall")
-		return ADP{}, err
-	}
-
-	reader := bytes.NewReader(content)
+	reader := cbrotli.NewReader(resp.Body)
 	decoder := xml.NewDecoder(reader)
 	decoder.CharsetReader = charset.NewReaderLabel
-	err = decoder.Decode(&players)
+	err = decoder.Decode(&adp)
 
 	if err != nil {
-		return ADP{}, err
+		return Adp{}, err
 	}
-	return players, nil
+
+	for i, player := range adp.Players {
+		massagePlayerData(&player)
+		adp.Players[i] = player
+	}
+
+	fmt.Println(adp.Players[0].LastName)
+
+	return adp, nil
 }
 
-func (w *WebScraperImpl) PrintPlayers(adp ADP) {
+func massagePlayerData(player *Player) {
+	if nameParts := strings.Split(player.FullName, ","); len(nameParts) > 1 {
+		player.LastName = nameParts[0]
+		player.FirstName = nameParts[1]
+	}
+}
+
+func (w *WebScraperImpl) PrintPlayers(adp Adp) {
 	players := adp.Players
-	fmt.Printf("|%4s|%6s|%35|%8s|%4s|%3s|%5s|%4s|%5s|%5s|%6s|", "Rank", "ID", "Name", "Position", "Team", "Bye", "ADP", "SDEV", "MFL", "RTS", "FFCalc")
+	fmt.Printf("|%-4s|%-6s|%-35s|%-8s|%-4s|%-3s|%-5s|%-4s|%-5s|%-5s|%-6s|\n", "Rank", "ID", "Name", "Position", "Team", "Bye", "ADP", "SDEV", "MFL", "RTS", "FFCalc")
 	for _, player := range players {
-		fmt.Printf("|%4s|%6s|%35|%8s|%4s|%3s|%5s|%4s|%5s|%5s|%6s|", player.Rank, player.ID, player.Name, player.Position, player.Team, player.Bye, player.ADP, player.StdDev, player.MFL, player.RTS, player.FFCalc)
+		fmt.Printf("|%4s|%6s|%35s|%8s|%4s|%3s|%5s|%4s|%5s|%5s|%6s|\n", player.Rank, player.ID, player.FullName, player.Position, player.Team, player.Bye, player.ADP, player.StdDev, player.MFL, player.RTS, player.FFCalc)
 	}
 }
-
-const FantasySharksURL = "https://www.fantasysharks.com/apps/bert/forecasts/adp.php?Position=97&xml=1&adpsort=99&Segment=746"
