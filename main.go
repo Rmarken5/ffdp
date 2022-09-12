@@ -10,10 +10,17 @@ func main() {
 		Client: http.Client{},
 	}
 
-	players, err := scraperSvc.GetPlayersFromSource(web_scraper.FantasySharksURL)
+	/*players, err := scraperSvc.GetPlayersFromSource(web_scraper.FantasySharksCurrentADPURL)
 	if err != nil {
 		panic(err)
 	}
 
-	scraperSvc.PrintPlayers(players)
+	scraperSvc.PrintAverageDraftPickList(players)*/
+
+	playerStats, _ := scraperSvc.GetTotalPlayerPoints(web_scraper.FantasySharksPreviousYearPointsURL)
+	scraperSvc.PrintPlayerStatLineHeader()
+	for _, player := range playerStats {
+		scraperSvc.PrintPlayerStatLine(player)
+
+	}
 }
