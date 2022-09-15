@@ -1,6 +1,8 @@
 package main
 
 import (
+	"fmt"
+	"github.com/rmarken5/ffdp/service"
 	"github.com/rmarken5/ffdp/web-scraper"
 	"net/http"
 )
@@ -10,17 +12,29 @@ func main() {
 		Client: http.Client{},
 	}
 
-	/*players, err := scraperSvc.GetPlayersFromSource(web_scraper.FantasySharksCurrentADPURL)
+	adpPlayers, err := scraperSvc.GetAverageDraftPickList(web_scraper.FantasySharksCurrentADPURL)
 	if err != nil {
 		panic(err)
 	}
 
-	scraperSvc.PrintAverageDraftPickList(players)*/
+
+
 
 	playerStats, _ := scraperSvc.GetTotalPlayerPoints(web_scraper.FantasySharksPreviousYearPointsURL)
-	scraperSvc.PrintPlayerStatLineHeader()
+/*	scraperSvc.PrintPlayerStatLineHeader()
 	for _, player := range playerStats {
 		scraperSvc.PrintPlayerStatLine(player)
 
+	}*/
+
+	adpMap := service.ConvertADPSliceToMap(adpPlayers.Players)
+	statMap := service.ConvertPlayerStatsSliceToMap(playerStats)
+
+	for key, val := range adpMap {
+		fmt.Println("_____________________________________________")
+		fmt.Println(val)
+		fmt.Println(statMap[key])
+		fmt.Println("_____________________________________________")
 	}
+
 }

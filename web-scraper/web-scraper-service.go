@@ -15,7 +15,7 @@ import (
 const (
 	FantasySharksCurrentADPURL         = "https://www.fantasysharks.com/apps/bert/forecasts/adp.php?Position=97&xml=1&adpsort=99&Segment=746"
 	FantasySharksPreviousYearPointsURL = "https://www.fantasysharks.com/apps/bert/stats/points.php?League=-1&Position=99&scoring=3&Segment=717"
-	ADPPlayerStringFormat              = "|%-4s|%-6s|%-35s|%-8s|%-4s|%-3s|%-5s|%-4s|%-5s|%-5s|%-6s|\n"
+	ADPPlayerStringFormat              = "|%-4s|%-6s|%-35s|%-8s|%-4s|%-3s|%-5d|%-4s|%-5s|%-5s|%-6s|\n"
 	PlayerStatFormat                   = "|%-4s|%-35s|%-4s|%-8s|%-10d|%-8d|%-9d|%-8d|%-4d|%-9d|%-8d|%-6d|\n"
 	PlayerStatFormatHeader             = "|%-4s|%-35s|%-4s|%-8s|%-10s|%-8s|%-9s|%-8s|%-4s|%-9s|%-8s|%-6s|\n"
 )
@@ -44,7 +44,7 @@ type ADPPlayer struct {
 	Position  string `xml:"Position,attr"`
 	Team      string `xml:"Team,attr"`
 	Bye       string `xml:"Bye,attr"`
-	ADP       string `xml:"ADP,attr"`
+	ADP       string  `xml:"ADP,attr"`
 	StdDev    string `xml:"StdDev,attr"`
 	MFL       string `xml:"MFL,attr"`
 	RTS       string `xml:"RTS,attr"`
@@ -228,18 +228,6 @@ func (w *WebScraperImpl) GetTotalPlayerPoints(url string) ([]PlayerStats, error)
 			}
 			return true
 		})
-
-		/*imageSrc := h.ChildAttr(config.ImageURL, "src")
-		destination := h.ChildAttr(config.Destination, "href")
-		price := h.ChildText(config.Price)
-		description := h.ChildText(config.Description)
-		price = common.FindPriceFromText(price)
-		fmt.Println(config.Domain)
-		if ok, product := common.IsDataEligibleToBeAddedToProduct(destination, price, description, imageSrc, description, config.Domain); ok {
-
-			products = append(products, *product)
-		}*/
-
 	})
 
 	collector.Visit(url)
