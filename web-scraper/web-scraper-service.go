@@ -223,6 +223,7 @@ func (w *WebScraperImpl) GetTotalPlayerPoints(url string) ([]PlayerStats, error)
 					fmt.Println("cannot convert text")
 				}
 				player.Points = int16(number)
+				massagePlayerStats(player)
 				playerStats = append(playerStats, *player)
 				break
 			}
@@ -259,9 +260,16 @@ func (w *WebScraperImpl) PrintPlayerStatLine(player PlayerStats) {
 	fmt.Printf(PlayerStatFormat, player.Rank, player.Name, player.Team, player.Position, player.PassYrds, player.PassTDs, player.RushYrds, player.RushTDs, player.Recs, player.RecYrds, player.RecTDs, player.Points)
 }
 
+func massagePlayerStats(player *PlayerStats) {
+	if nameParts := strings.Split(player.Name, ","); len(nameParts) > 1 {
+		player.LastName = nameParts[0]
+		player.FirstName = nameParts[1]
+	}
+}
 func massagePlayerData(player *ADPPlayer) {
 	if nameParts := strings.Split(player.FullName, ","); len(nameParts) > 1 {
 		player.LastName = nameParts[0]
 		player.FirstName = nameParts[1]
 	}
 }
+

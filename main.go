@@ -30,10 +30,10 @@ func main() {
 	adpMap := service.ConvertADPSliceToMap(adpPlayers.Players)
 	statMap := service.ConvertPlayerStatsSliceToMap(playerStats)
 
-	for key, val := range adpMap {
+	for key, val := range statMap {
 		fmt.Println("_____________________________________________")
 		fmt.Println(val)
-		fmt.Println(statMap[key])
+		fmt.Println(adpMap[key])
 		fmt.Println("_____________________________________________")
 	}
 

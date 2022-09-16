@@ -4,6 +4,8 @@ import (
 	"errors"
 	"github.com/rmarken5/ffdp/web-scraper"
 	"strconv"
+    "hash/fnv"
+
 )
 
 type Player struct {
@@ -52,28 +54,26 @@ func DraftPickAndStatsToPlayer(draftPick web_scraper.ADPPlayer, stat web_scraper
 	}, nil
 }
 
-func ConvertADPSliceToMap(players []web_scraper.ADPPlayer) map[PlayerKey]web_scraper.ADPPlayer {
-	playerMap := make(map[PlayerKey]web_scraper.ADPPlayer, len(players))
+func ConvertADPSliceToMap(players []web_scraper.ADPPlayer) map[uint32]web_scraper.ADPPlayer {
+	playerMap := make(map[uint32]web_scraper.ADPPlayer, len(players))
 	for _, player := range players {
-		key := PlayerKey{
-			Position: player.Position,
-			Team:     player.Team,
-			LastName: player.LastName,
-		}
-		playerMap[key] = player
+		playerMap[hash(player.Position + player.FirstName + player.LastName)] = player
+	}
+
+	return playerMap
+}
+
+func ConvertPlayerStatsSliceToMap(players []web_scraper.PlayerStats) map[uint32]web_scraper.PlayerStats {
+	playerMap := make(map[uint32]web_scraper.PlayerStats, len(players))
+	for _, player := range players {
+		playerMap[hash(player.Position + player.FirstName + player.LastName)] = player
 	}
 	return playerMap
 }
 
-func ConvertPlayerStatsSliceToMap(players []web_scraper.PlayerStats) map[PlayerKey]web_scraper.PlayerStats {
-	playerMap := make(map[PlayerKey]web_scraper.PlayerStats, len(players))
-	for _, player := range players {
-		key := PlayerKey{
-			Position: player.Position,
-			Team:     player.Team,
-			LastName: player.LastName,
-		}
-		playerMap[key] = player
-	}
-	return playerMap
+
+func hash(s string) uint32 {
+        h := fnv.New32a()
+        h.Write([]byte(s))
+        return h.Sum32()
 }
