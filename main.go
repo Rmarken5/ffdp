@@ -16,25 +16,22 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
-
-
-
-
-	playerStats, _ := scraperSvc.GetTotalPlayerPoints(web_scraper.FantasySharksPreviousYearPointsURL)
-/*	scraperSvc.PrintPlayerStatLineHeader()
-	for _, player := range playerStats {
-		scraperSvc.PrintPlayerStatLine(player)
-
-	}*/
-
+	playerStats, err := scraperSvc.GetTotalPlayerPoints(web_scraper.FantasySharksPreviousYearPointsURL)
+	if err != nil {
+		panic(err)
+	}
 	adpMap := service.ConvertADPSliceToMap(adpPlayers.Players)
 	statMap := service.ConvertPlayerStatsSliceToMap(playerStats)
 
-	for key, val := range statMap {
-		fmt.Println("_____________________________________________")
-		fmt.Println(val)
-		fmt.Println(adpMap[key])
-		fmt.Println("_____________________________________________")
+	players, notFound := service.BuildPlayerSlice(adpMap, statMap)
+	for _, player := range players {
+		fmt.Println(player)
 	}
 
+	fmt.Printf("\n\n\n\n\n")
+	fmt.Println("NotFound!")
+
+	for _, player := range notFound {
+		fmt.Println(player)
+	}
 }

@@ -44,7 +44,7 @@ type ADPPlayer struct {
 	Position  string `xml:"Position,attr"`
 	Team      string `xml:"Team,attr"`
 	Bye       string `xml:"Bye,attr"`
-	ADP       string  `xml:"ADP,attr"`
+	ADP       string `xml:"ADP,attr"`
 	StdDev    string `xml:"StdDev,attr"`
 	MFL       string `xml:"MFL,attr"`
 	RTS       string `xml:"RTS,attr"`
@@ -110,8 +110,6 @@ func (w *WebScraperImpl) GetAverageDraftPickList(myUrl string) (Adp, error) {
 		massagePlayerData(&player)
 		adp.Players[i] = player
 	}
-
-	fmt.Println(adp.Players[0].LastName)
 
 	return adp, nil
 }

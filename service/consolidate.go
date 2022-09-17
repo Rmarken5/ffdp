@@ -2,10 +2,10 @@ package service
 
 import (
 	"errors"
+	"fmt"
 	"github.com/rmarken5/ffdp/web-scraper"
+	"hash/fnv"
 	"strconv"
-    "hash/fnv"
-
 )
 
 type Player struct {
@@ -57,7 +57,7 @@ func DraftPickAndStatsToPlayer(draftPick web_scraper.ADPPlayer, stat web_scraper
 func ConvertADPSliceToMap(players []web_scraper.ADPPlayer) map[uint32]web_scraper.ADPPlayer {
 	playerMap := make(map[uint32]web_scraper.ADPPlayer, len(players))
 	for _, player := range players {
-		playerMap[hash(player.Position + player.FirstName + player.LastName)] = player
+		playerMap[hash(player.Position+player.FirstName+player.LastName)] = player
 	}
 
 	return playerMap
@@ -66,14 +66,28 @@ func ConvertADPSliceToMap(players []web_scraper.ADPPlayer) map[uint32]web_scrape
 func ConvertPlayerStatsSliceToMap(players []web_scraper.PlayerStats) map[uint32]web_scraper.PlayerStats {
 	playerMap := make(map[uint32]web_scraper.PlayerStats, len(players))
 	for _, player := range players {
-		playerMap[hash(player.Position + player.FirstName + player.LastName)] = player
+		playerMap[hash(player.Position+player.FirstName+player.LastName)] = player
 	}
 	return playerMap
 }
 
+func BuildPlayerSlice(draftPicks map[uint32]web_scraper.ADPPlayer, playerStats map[uint32]web_scraper.PlayerStats) (players []Player, notMatched []web_scraper.ADPPlayer) {
+	for key, val := range draftPicks {
+		if stats, ok := playerStats[key]; ok {
+			player, err := DraftPickAndStatsToPlayer(val, stats, 170)
+			if err != nil {
+				fmt.Println(err)
+			}
+			players = append(players, player)
+		} else {
+			notMatched = append(notMatched, val)
+		}
+	}
+	return players, notMatched
+}
 
 func hash(s string) uint32 {
-        h := fnv.New32a()
-        h.Write([]byte(s))
-        return h.Sum32()
+	h := fnv.New32a()
+	h.Write([]byte(s))
+	return h.Sum32()
 }
