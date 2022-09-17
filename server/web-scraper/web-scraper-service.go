@@ -270,4 +270,3 @@ func massagePlayerData(player *ADPPlayer) {
 		player.FirstName = nameParts[1]
 	}
 }
-
