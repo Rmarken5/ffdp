@@ -1,0 +1,10 @@
+syntax = "proto3";
+package player_proto;
+
+import "github.com/rmarken5/ffdp/server/web-scraper";
+
+option go_package = "github.com/rmarken5/ffdp/player_proto";
+
+message Player {
+  web-
+}
