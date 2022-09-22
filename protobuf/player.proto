@@ -1,5 +1,7 @@
 syntax = "proto3";
 package player_proto;
+import "google/protobuf/empty.proto";
+
 
 option go_package = "proto_files/player_proto";
 
@@ -21,4 +23,7 @@ message Players {
   repeated Player players = 1;
 }
 
+service DraftPickService {
+  rpc GetPlayers (google.protobuf.Empty) returns (player_proto.Players);
+}
 
