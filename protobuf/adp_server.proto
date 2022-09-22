@@ -1,0 +1,12 @@
+syntax = "proto3";
+package adp_server;
+
+import "google/protobuf/empty.proto";
+import "player.proto";
+
+option go_package = "proto_files/adp_server";
+
+
+service DraftPickService {
+  rpc GetPlayers (google.protobuf.Empty) returns (player_proto.Players);
+}
