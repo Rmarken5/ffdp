@@ -7,7 +7,7 @@ require (
 	github.com/google/brotli/go/cbrotli v0.0.0-20220512075048-9801a2c5d6c6
 	golang.org/x/net v0.0.0-20220826154423-83b083e8dc8b
 	google.golang.org/appengine v1.6.6
-	google.golang.org/grpc v1.27.0
+	google.golang.org/grpc v1.32.0
 	google.golang.org/protobuf v1.24.0
 )
 
