@@ -3,7 +3,7 @@ package service
 import (
 	"errors"
 	"fmt"
-	"github.com/rmarken5/ffdp/web-scraper"
+	"github.com/rmarken5/ffdp/server/web-scraper"
 	"hash/fnv"
 	"strconv"
 )

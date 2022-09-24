@@ -23,12 +23,12 @@ const (
 type WebScraper interface {
 	GetAverageDraftPickList(url string) (Adp, error)
 	GetTotalPlayerPoints(url string) ([]PlayerStats, error)
-	PrintPlayers(Adp)
 }
 
 type WebScraperImpl struct {
 	http.Client
 }
+
 type Adp struct {
 	XMLName xml.Name    `xml:"adp"`
 	Text    string      `xml:",chardata"`
@@ -270,4 +270,3 @@ func massagePlayerData(player *ADPPlayer) {
 		player.FirstName = nameParts[1]
 	}
 }
-

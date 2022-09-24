@@ -2,8 +2,8 @@ package main
 
 import (
 	"fmt"
-	"github.com/rmarken5/ffdp/service"
-	"github.com/rmarken5/ffdp/web-scraper"
+	"github.com/rmarken5/ffdp/server/service"
+	"github.com/rmarken5/ffdp/server/web-scraper"
 	"net/http"
 )
 

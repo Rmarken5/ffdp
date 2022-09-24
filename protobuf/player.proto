@@ -1,0 +1,29 @@
+syntax = "proto3";
+package player_proto;
+import "google/protobuf/empty.proto";
+
+
+option go_package = "proto_files/player_proto";
+
+message Player {
+  string Rank = 1;
+  string ID = 2;
+  string FullName = 3;
+  string FirstName = 4;
+  string LastName = 5;
+  string Position = 6;
+  string Team = 7;
+  string Bye = 8;
+  string ADP = 9;
+  int32 PointTotal = 10;
+  float Value = 11;
+}
+
+message Players {
+  repeated Player players = 1;
+}
+
+service DraftPickService {
+  rpc GetPlayers (google.protobuf.Empty) returns (player_proto.Players);
+}
+
