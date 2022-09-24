@@ -3,6 +3,8 @@ package main
 import (
 	"context"
 	"fmt"
+	tea "github.com/charmbracelet/bubbletea"
+	"github.com/rmarken5/ffdp/charm/models"
 	"github.com/rmarken5/ffdp/protobuf/proto_files/player_proto"
 	"google.golang.org/grpc"
 	"google.golang.org/protobuf/types/known/emptypb"
@@ -19,6 +21,8 @@ func main() {
 
 	players, _ := pbClient.GetPlayers(context.Background(), &emptypb.Empty{})
 
-	fmt.Print(players)
-
+	program := tea.NewProgram(models.InitialWelcomeModel(players), tea.WithAltScreen())
+	if err := program.Start(); err != nil {
+		panic(err)
+	}
 }
