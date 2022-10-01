@@ -6,13 +6,14 @@ import (
 )
 
 type WelcomeModel struct {
-	client    player_proto.DraftPickServiceClient
-	cursor    int
-	MenuItems []MenuItem
+	client     player_proto.DraftPickServiceClient
+	cursor     int
+	MenuItems  []MenuItem
+	windowSize int
 }
 type MenuItem struct {
 	Label       string
-	CreateModel func(client player_proto.DraftPickServiceClient, pageSize int) tea.Model
+	CreateModel func(client player_proto.DraftPickServiceClient) tea.Model
 }
 
 func InitializeWelcomeModel(client player_proto.DraftPickServiceClient) WelcomeModel {
@@ -41,10 +42,11 @@ func (w WelcomeModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				w.cursor++
 			}
 		case "enter", " ":
-			m := w.MenuItems[w.cursor].CreateModel(w.client, 10)
-			return m, nil
+			m := w.MenuItems[w.cursor].CreateModel(w.client)
+			return m, tea.Println("loading")
 		}
 	}
+
 	return w, nil
 }
 

@@ -17,7 +17,6 @@ func main() {
 	defer conn.Close()
 
 	pbClient := player_proto.NewDraftPickServiceClient(conn)
-
 	wm := models.InitializeWelcomeModel(pbClient)
 
 	playerMenuItem := models.MenuItem{

@@ -20,78 +20,82 @@ type PlayerModel struct {
 	selected      *pp.Player
 }
 
-func InitializePlayerModel(allPlayers []*pp.Player, pageSize int) PlayerModel {
-
-	numberOfPages := int(math.Ceil(float64(len(allPlayers)) / float64(pageSize)))
-	playerPage := allPlayers[:pageSize]
+func InitializePlayerModel(allPlayers []*pp.Player) PlayerModel {
 
 	return PlayerModel{
-		allPlayers:    allPlayers,
-		playerPage:    playerPage,
-		pageSize:      pageSize,
-		currentPage:   1,
-		cursor:        0,
-		numberOfPages: numberOfPages,
+		allPlayers:  allPlayers,
+		currentPage: 1,
+		cursor:      0,
 	}
 }
 
-func (wm PlayerModel) Init() tea.Cmd {
+func (p PlayerModel) Init() tea.Cmd {
 	return nil
 }
 
-func (wm PlayerModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
+func (p PlayerModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
 		switch msg.String() {
 		case "ctrl+c", "q":
-			return wm, tea.Quit
+			return p, tea.Quit
 		case "up", "k":
-			if wm.cursor > 0 {
-				wm.cursor--
-			} else if wm.currentPage-1 > 0 {
-				wm.cursor = wm.pageSize - 1
-				wm.currentPage--
-				wm.playerPage = wm.allPlayers[(wm.currentPage-1)*wm.pageSize : wm.currentPage*wm.pageSize]
+			if p.cursor > 0 {
+				p.cursor--
+			} else if p.currentPage-1 > 0 {
+				p.cursor = p.pageSize - 1
+				p.currentPage--
+				p.playerPage = p.allPlayers[(p.currentPage-1)*p.pageSize : p.currentPage*p.pageSize]
 			}
 		case "down", "j":
-			if wm.cursor < len(wm.playerPage)-1 {
-				wm.cursor++
-			} else if wm.currentPage < wm.numberOfPages {
-				wm.cursor = 0
-				wm.currentPage++
-				if wm.currentPage == wm.numberOfPages {
-					wm.playerPage = wm.allPlayers[(wm.currentPage-1)*wm.pageSize:]
+			if p.cursor < len(p.playerPage)-1 {
+				p.cursor++
+			} else if p.currentPage < p.numberOfPages {
+				p.cursor = 0
+				p.currentPage++
+				if p.currentPage == p.numberOfPages {
+					p.playerPage = p.allPlayers[(p.currentPage-1)*p.pageSize:]
 				} else {
-					wm.playerPage = wm.allPlayers[(wm.currentPage-1)*wm.pageSize : wm.currentPage*wm.pageSize]
+					p.playerPage = p.allPlayers[(p.currentPage-1)*p.pageSize : p.currentPage*p.pageSize]
 				}
 			}
 		case "enter", " ":
-			wm.selected = wm.playerPage[wm.cursor]
+			p.selected = p.playerPage[p.cursor]
 		}
+	case tea.WindowSizeMsg:
+		p.updatePlayerModel(msg.Height - 6)
 	}
-	return wm, nil
+
+	return p, nil
 }
 
-func (wm PlayerModel) View() string {
+func (p PlayerModel) View() string {
 	s := "Scroll through players\n\n"
 
-	for i, player := range wm.playerPage {
-		if i == wm.cursor {
+	for i, player := range p.playerPage {
+		if i == p.cursor {
 			s += " > "
 		}
 		s += printer.Print(player)
 	}
-	s += fmt.Sprintf("\nPage %d of %d\n\n", wm.currentPage, wm.numberOfPages)
+	s += fmt.Sprintf("\nPage %d of %d\n\n", p.currentPage, p.numberOfPages)
 
-	if wm.selected != nil {
-		s += fmt.Sprintf("Currently Selected Player:\n%s\n", printer.Print(wm.selected))
+	if p.selected != nil {
+		s += fmt.Sprintf("Currently Selected Player:\n%s\n", printer.Print(p.selected))
 	}
 
 	return s
 }
 
-func InitPlayerModel(client pp.DraftPickServiceClient, pageSize int) tea.Model {
+func (p *PlayerModel) updatePlayerModel(height int) {
+	numberOfPages := int(math.Ceil(float64(len(p.allPlayers)) / float64(height)))
+	p.numberOfPages = numberOfPages
+	p.pageSize = height
+	p.playerPage = p.allPlayers[(p.currentPage-1)*p.pageSize : p.currentPage*p.pageSize]
+}
+
+func InitPlayerModel(client pp.DraftPickServiceClient) tea.Model {
 	players, _ := client.GetPlayers(context.Background(), &emptypb.Empty{})
-	pm := InitializePlayerModel(players.Players, pageSize)
+	pm := InitializePlayerModel(players.Players)
 	return pm
 }
