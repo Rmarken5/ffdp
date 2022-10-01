@@ -21,7 +21,7 @@ func main() {
 
 	players, _ := pbClient.GetPlayers(context.Background(), &emptypb.Empty{})
 
-	program := tea.NewProgram(models.InitialWelcomeModel(players), tea.WithAltScreen())
+	program := tea.NewProgram(models.InitialWelcomeModel(players, 10), tea.WithAltScreen())
 	if err := program.Start(); err != nil {
 		panic(err)
 	}

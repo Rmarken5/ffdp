@@ -6,6 +6,7 @@ import (
 	"github.com/rmarken5/ffdp/protobuf/proto_files/player_proto"
 	ws "github.com/rmarken5/ffdp/server/web-scraper"
 	"log"
+	"sort"
 )
 
 type Logic interface {
@@ -39,7 +40,7 @@ func (logic *LogicImpl) GetPlayers(ctx context.Context) (player_proto.Players, e
 	adpMap := ConvertADPSliceToMap(adpList.Players)
 	playerPointsMap := ConvertPlayerStatsSliceToMap(playerPoints)
 	players, _ := DraftPicksAndStatsToPlayerProtos(adpMap, playerPointsMap, 170)
+	sort.Sort(ByLastNameDesc(players))
 	proto := player_proto.Players{Players: players}
-
 	return proto, nil
 }
