@@ -11,6 +11,5 @@ type ADPClient struct {
 }
 
 func (c *ADPClient) GetPlayers(ctx context.Context, in *emptypb.Empty) (*player_proto.Players, error) {
-
 	return c.draftPickClient.GetPlayers(ctx, in)
 }

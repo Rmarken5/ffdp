@@ -1,13 +1,11 @@
 package main
 
 import (
-	"context"
 	"fmt"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/rmarken5/ffdp/charm/models"
 	"github.com/rmarken5/ffdp/protobuf/proto_files/player_proto"
 	"google.golang.org/grpc"
-	"google.golang.org/protobuf/types/known/emptypb"
 )
 
 func main() {
@@ -17,11 +15,18 @@ func main() {
 		panic(err)
 	}
 	defer conn.Close()
+
 	pbClient := player_proto.NewDraftPickServiceClient(conn)
 
-	players, _ := pbClient.GetPlayers(context.Background(), &emptypb.Empty{})
+	wm := models.InitializeWelcomeModel(pbClient)
 
-	program := tea.NewProgram(models.InitialWelcomeModel(players, 10), tea.WithAltScreen())
+	playerMenuItem := models.MenuItem{
+		Label:       "Previous Year ADP Vs. Projected Points",
+		CreateModel: models.InitPlayerModel,
+	}
+	wm.MenuItems = append(wm.MenuItems, playerMenuItem)
+
+	program := tea.NewProgram(wm, tea.WithAltScreen())
 	if err := program.Start(); err != nil {
 		panic(err)
 	}

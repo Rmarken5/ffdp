@@ -1,86 +1,61 @@
 package models
 
 import (
-	"fmt"
 	tea "github.com/charmbracelet/bubbletea"
-	"github.com/rmarken5/ffdp/client/printer"
-	pp "github.com/rmarken5/ffdp/protobuf/proto_files/player_proto"
-	"math"
+	"github.com/rmarken5/ffdp/protobuf/proto_files/player_proto"
 )
 
 type WelcomeModel struct {
-	allPlayers    []*pp.Player
-	playerPage    []*pp.Player
-	pageSize      int
-	currentPage   int
-	cursor        int
-	numberOfPages int
-	selected      *pp.Player
+	client    player_proto.DraftPickServiceClient
+	cursor    int
+	MenuItems []MenuItem
+}
+type MenuItem struct {
+	Label       string
+	CreateModel func(client player_proto.DraftPickServiceClient, pageSize int) tea.Model
 }
 
-func InitialWelcomeModel(players *pp.Players, pageSize int) WelcomeModel {
-
+func InitializeWelcomeModel(client player_proto.DraftPickServiceClient) WelcomeModel {
 	return WelcomeModel{
-		allPlayers:    players.Players,
-		playerPage:    players.Players[:pageSize],
-		pageSize:      pageSize,
-		currentPage:   1,
-		cursor:        0,
-		numberOfPages: int(math.Ceil(float64(len(players.Players)) / float64(pageSize))),
+		cursor: 0,
+		client: client,
 	}
 }
 
-func (wm WelcomeModel) Init() tea.Cmd {
+func (w WelcomeModel) Init() tea.Cmd {
 	return nil
 }
 
-func (wm WelcomeModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
+func (w WelcomeModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
 		switch msg.String() {
 		case "ctrl+c", "q":
-			return wm, tea.Quit
+			return w, tea.Quit
 		case "up", "k":
-			if wm.cursor > 0 {
-				wm.cursor--
-			} else if wm.currentPage-1 > 0 {
-				wm.cursor = wm.pageSize - 1
-				wm.currentPage--
-				wm.playerPage = wm.allPlayers[(wm.currentPage-1)*wm.pageSize : wm.currentPage*wm.pageSize]
+			if w.cursor > 0 {
+				w.cursor--
 			}
 		case "down", "j":
-			if wm.cursor < len(wm.playerPage)-1 {
-				wm.cursor++
-			} else if wm.currentPage < wm.numberOfPages {
-				wm.cursor = 0
-				wm.currentPage++
-				if wm.currentPage == wm.numberOfPages {
-					wm.playerPage = wm.allPlayers[(wm.currentPage-1)*wm.pageSize:]
-				} else {
-					wm.playerPage = wm.allPlayers[(wm.currentPage-1)*wm.pageSize : wm.currentPage*wm.pageSize]
-				}
+			if w.cursor < len(w.MenuItems)-1 {
+				w.cursor++
 			}
 		case "enter", " ":
-			wm.selected = wm.playerPage[wm.cursor]
+			m := w.MenuItems[w.cursor].CreateModel(w.client, 10)
+			return m, nil
 		}
 	}
-	return wm, nil
+	return w, nil
 }
 
-func (wm WelcomeModel) View() string {
-	s := "Scroll through players\n\n"
+func (w WelcomeModel) View() string {
+	s := "Select an option.\n\n"
 
-	for i, player := range wm.playerPage {
-		if i == wm.cursor {
-			s += " > "
+	for i, item := range w.MenuItems {
+		if w.cursor == i {
+			s += "> "
 		}
-		s += printer.Print(player)
+		s += item.Label + "\n"
 	}
-	s += fmt.Sprintf("\nPage %d of %d\n\n", wm.currentPage, wm.numberOfPages)
-
-	if wm.selected != nil {
-		s += fmt.Sprintf("Currently Selected Player:\n%s\n", printer.Print(wm.selected))
-	}
-
 	return s
 }
