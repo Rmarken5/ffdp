@@ -6,8 +6,10 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/rmarken5/ffdp/client/printer"
 	pp "github.com/rmarken5/ffdp/protobuf/proto_files/player_proto"
+	"github.com/rmarken5/ffdp/server/service"
 	"google.golang.org/protobuf/types/known/emptypb"
 	"math"
+	"sort"
 )
 
 type PlayerModel struct {
@@ -20,12 +22,17 @@ type PlayerModel struct {
 	selected      *pp.Player
 }
 
-func InitializePlayerModel(allPlayers []*pp.Player) PlayerModel {
+func InitializePlayerModel(client pp.DraftPickServiceClient, initHeight int) tea.Model {
+	players, _ := client.GetPlayers(context.Background(), &emptypb.Empty{})
+	pageSize := initHeight - 9
 
 	return PlayerModel{
-		allPlayers:  allPlayers,
-		currentPage: 1,
-		cursor:      0,
+		allPlayers:    players.Players,
+		currentPage:   1,
+		cursor:        0,
+		pageSize:      pageSize,
+		numberOfPages: calculateNumberOfPages(pageSize, players.Players),
+		playerPage:    calculatePlayerPage(1, pageSize, players.Players),
 	}
 }
 
@@ -45,7 +52,7 @@ func (p PlayerModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			} else if p.currentPage-1 > 0 {
 				p.cursor = p.pageSize - 1
 				p.currentPage--
-				p.playerPage = p.allPlayers[(p.currentPage-1)*p.pageSize : p.currentPage*p.pageSize]
+				p.playerPage = calculatePlayerPage(p.currentPage, p.pageSize, p.allPlayers)
 			}
 		case "down", "j":
 			if p.cursor < len(p.playerPage)-1 {
@@ -56,14 +63,17 @@ func (p PlayerModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				if p.currentPage == p.numberOfPages {
 					p.playerPage = p.allPlayers[(p.currentPage-1)*p.pageSize:]
 				} else {
-					p.playerPage = p.allPlayers[(p.currentPage-1)*p.pageSize : p.currentPage*p.pageSize]
+					p.playerPage = calculatePlayerPage(p.currentPage, p.pageSize, p.allPlayers)
 				}
 			}
 		case "enter", " ":
 			p.selected = p.playerPage[p.cursor]
+		case "s":
+			return InitializeSortModel(createSortMenuItems(), &p), tea.EnterAltScreen
+
 		}
 	case tea.WindowSizeMsg:
-		p.updatePlayerModel(msg.Height - 6)
+		p.updatePlayerModel(msg.Height - 10)
 	}
 
 	return p, nil
@@ -88,14 +98,33 @@ func (p PlayerModel) View() string {
 }
 
 func (p *PlayerModel) updatePlayerModel(height int) {
-	numberOfPages := int(math.Ceil(float64(len(p.allPlayers)) / float64(height)))
-	p.numberOfPages = numberOfPages
 	p.pageSize = height
-	p.playerPage = p.allPlayers[(p.currentPage-1)*p.pageSize : p.currentPage*p.pageSize]
+	p.numberOfPages = calculateNumberOfPages(p.pageSize, p.allPlayers)
+	p.playerPage = calculatePlayerPage(p.currentPage, p.pageSize, p.allPlayers)
 }
 
-func InitPlayerModel(client pp.DraftPickServiceClient) tea.Model {
-	players, _ := client.GetPlayers(context.Background(), &emptypb.Empty{})
-	pm := InitializePlayerModel(players.Players)
-	return pm
+func calculateNumberOfPages(height int, v []*pp.Player) int {
+	return int(math.Ceil(float64(len(v)) / float64(height)))
+}
+
+func calculatePlayerPage(currentPage, pageSize int, players []*pp.Player) []*pp.Player {
+	return players[(currentPage-1)*pageSize : currentPage*pageSize]
+}
+
+func createSortMenuItems() []SortMenuItem {
+	byLastNameDesc := NewSortMenuItem("By Last Name Desc", func(players []*pp.Player) {
+		sort.Sort(service.ByLastNameDesc(players))
+	})
+	byLastNameAsc := NewSortMenuItem("By Last Name Asc", func(players []*pp.Player) {
+		sort.Sort(service.ByLastNameAsc(players))
+	})
+	byValueDesc := NewSortMenuItem("By Value Desc", func(players []*pp.Player) {
+		sort.Sort(service.ByValueDesc(players))
+	})
+	byValueAsc := NewSortMenuItem("By Value Asc", func(players []*pp.Player) {
+		sort.Sort(service.ByValueAsc(players))
+	})
+	sortMenuItems := []SortMenuItem{byLastNameAsc, byLastNameDesc, byValueAsc, byValueDesc}
+	return sortMenuItems
+
 }

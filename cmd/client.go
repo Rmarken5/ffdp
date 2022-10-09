@@ -21,7 +21,7 @@ func main() {
 
 	playerMenuItem := models.MenuItem{
 		Label:       "Previous Year ADP Vs. Projected Points",
-		CreateModel: models.InitPlayerModel,
+		CreateModel: models.InitializePlayerModel,
 	}
 	wm.MenuItems = append(wm.MenuItems, playerMenuItem)
 

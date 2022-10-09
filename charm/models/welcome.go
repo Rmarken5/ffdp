@@ -13,7 +13,7 @@ type WelcomeModel struct {
 }
 type MenuItem struct {
 	Label       string
-	CreateModel func(client player_proto.DraftPickServiceClient) tea.Model
+	CreateModel func(client player_proto.DraftPickServiceClient, initHeight int) tea.Model
 }
 
 func InitializeWelcomeModel(client player_proto.DraftPickServiceClient) WelcomeModel {
@@ -42,9 +42,11 @@ func (w WelcomeModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				w.cursor++
 			}
 		case "enter", " ":
-			m := w.MenuItems[w.cursor].CreateModel(w.client)
+			m := w.MenuItems[w.cursor].CreateModel(w.client, w.windowSize)
 			return m, tea.Println("loading")
 		}
+	case tea.WindowSizeMsg:
+		w.windowSize = msg.Height
 	}
 
 	return w, nil

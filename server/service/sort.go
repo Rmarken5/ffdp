@@ -43,3 +43,9 @@ type ByValueDesc []*player_proto.Player
 func (b ByValueDesc) Len() int           { return len(b) }
 func (b ByValueDesc) Swap(i, j int)      { b[i], b[j] = b[j], b[i] }
 func (b ByValueDesc) Less(i, j int) bool { return b[i].Value < b[j].Value }
+
+type ByValueAsc []*player_proto.Player
+
+func (b ByValueAsc) Len() int           { return len(b) }
+func (b ByValueAsc) Swap(i, j int)      { b[i], b[j] = b[j], b[i] }
+func (b ByValueAsc) Less(i, j int) bool { return b[i].Value > b[j].Value }
