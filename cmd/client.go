@@ -19,11 +19,16 @@ func main() {
 	pbClient := player_proto.NewDraftPickServiceClient(conn)
 	wm := models.InitializeWelcomeModel(pbClient)
 
-	playerMenuItem := models.MenuItem{
-		Label:       "Previous Year ADP Vs. Projected Points",
-		CreateModel: models.InitializePlayerModel,
+	previousYearPoints := models.MenuItem{
+		Label:       "Previous Year ADP Vs. Previous Year Projected Points",
+		CreateModel: models.InitializePreviousVsProjected,
 	}
-	wm.MenuItems = append(wm.MenuItems, playerMenuItem)
+
+	currentYearProjections := models.MenuItem{
+		Label:       "Previous Year ADP Vs. Current Year Projected Points",
+		CreateModel: models.InitializePreviousVsProjected,
+	}
+	wm.MenuItems = []models.MenuItem{previousYearPoints, currentYearProjections}
 
 	program := tea.NewProgram(wm, tea.WithAltScreen())
 	if err := program.Start(); err != nil {

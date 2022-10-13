@@ -22,8 +22,22 @@ type PlayerModel struct {
 	selected      *pp.Player
 }
 
-func InitializePlayerModel(client pp.DraftPickServiceClient, initHeight int) tea.Model {
-	players, _ := client.GetPlayers(context.Background(), &emptypb.Empty{})
+func InitializePreviousVsProjected(client pp.DraftPickServiceClient, initHeight int) tea.Model {
+	players, _ := client.GetPlayersByPreviousYearPoints(context.Background(), &emptypb.Empty{})
+	pageSize := initHeight - 9
+
+	return PlayerModel{
+		allPlayers:    players.Players,
+		currentPage:   1,
+		cursor:        0,
+		pageSize:      pageSize,
+		numberOfPages: calculateNumberOfPages(pageSize, players.Players),
+		playerPage:    calculatePlayerPage(1, pageSize, players.Players),
+	}
+}
+
+func InitializeCurrentYearProjections(client pp.DraftPickServiceClient, initHeight int) tea.Model {
+	players, _ := client.GetPlayersByPreviousYearPoints(context.Background(), &emptypb.Empty{})
 	pageSize := initHeight - 9
 
 	return PlayerModel{

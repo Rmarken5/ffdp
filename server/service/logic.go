@@ -32,7 +32,7 @@ func (logic *LogicImpl) GetPlayersByPreviousYearPoints(ctx context.Context) (pla
 		logic.logger.Println("error in retrieving adp list.")
 		return player_proto.Players{}, fmt.Errorf("error in retrieving adp list")
 	}
-	playerPoints, err := logic.webScraper.GetTotalPlayerPoints(ws.FantasySharksPreviousYearPointsURL)
+	playerPoints, err := logic.webScraper.GetTotalPlayerPointsLastYear(ws.FantasySharksPreviousYearPointsURL)
 	if err != nil {
 		logic.logger.Println("error in retrieving point list.")
 		return player_proto.Players{}, fmt.Errorf("error in retrieving point list")
@@ -52,7 +52,7 @@ func (logic *LogicImpl) GetPlayersByCurrentYearProjections(ctx context.Context) 
 		logic.logger.Println("error in retrieving adp list.")
 		return player_proto.Players{}, fmt.Errorf("error in retrieving adp list")
 	}
-	playerPoints, err := logic.webScraper.GetTotalPlayerPoints(ws.FantasySharksCurrentYearProjectedPointsURL)
+	playerPoints, err := logic.webScraper.GetTotalPlayerPointsProjected(ws.FantasySharksCurrentYearProjectedPointsURL)
 	if err != nil {
 		logic.logger.Println("error in retrieving point list.")
 		return player_proto.Players{}, fmt.Errorf("error in retrieving point list")

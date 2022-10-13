@@ -9,6 +9,7 @@ import (
 	"golang.org/x/net/html/charset"
 	"math/rand"
 	"net/http"
+	"regexp"
 	"strconv"
 	"strings"
 )
@@ -61,12 +62,12 @@ type PlayerStats struct {
 	FirstName      string
 	Team           string
 	Position       string
-	PassYrds       int16
+	PassYrds       float32
 	PassTDs        float32
-	RushYrds       int16
+	RushYrds       float32
 	RushTDs        float32
 	Recs           float32
-	RecYrds        int16
+	RecYrds        float32
 	RecTDs         float32
 	FieldGoalsMade float32
 	PointsAgainst  float32
@@ -151,7 +152,7 @@ func (w *WebScraperImpl) GetTotalPlayerPointsProjected(myUrl string) ([]PlayerSt
 	var eof error
 	i := 0
 	for ; eof == nil; line, eof = bufReader.ReadString('\n') {
-		if i == 0 {
+		if i <= 1 {
 			i++
 			continue
 		}
@@ -205,7 +206,7 @@ func (w *WebScraperImpl) GetTotalPlayerPointsLastYear(url string) ([]PlayerStats
 				if err != nil {
 					fmt.Println("cannot convert text")
 				}
-				player.PassYrds = int16(number)
+				player.PassYrds = float32(number)
 				break
 			case 5:
 				number, err := strconv.ParseFloat(element.Text, 32)
@@ -219,7 +220,7 @@ func (w *WebScraperImpl) GetTotalPlayerPointsLastYear(url string) ([]PlayerStats
 				if err != nil {
 					fmt.Println("cannot convert text")
 				}
-				player.RushYrds = int16(number)
+				player.RushYrds = float32(number)
 				break
 			case 7:
 				number, err := strconv.ParseFloat(element.Text, 32)
@@ -240,7 +241,7 @@ func (w *WebScraperImpl) GetTotalPlayerPointsLastYear(url string) ([]PlayerStats
 				if err != nil {
 					fmt.Println("cannot convert text")
 				}
-				player.RecYrds = int16(number)
+				player.RecYrds = float32(number)
 				break
 			case 10:
 				number, err := strconv.ParseFloat(element.Text, 32)
@@ -283,7 +284,6 @@ func (w *WebScraperImpl) GetTotalPlayerPointsLastYear(url string) ([]PlayerStats
 			return true
 		})
 	})
-	fmt.Println(url)
 	if err := collector.Visit(url); err != nil {
 		fmt.Printf("%v\n", err)
 	}
@@ -336,9 +336,10 @@ func massagePlayerStatData(player *PlayerStats) {
 }
 
 func parseCSVLine(line string) (PlayerStats, error) {
+	line = strings.TrimSuffix(line, "\r\n")
 	splitLine := strings.Split(line, ",")
-	if len(splitLine) == 18 {
-		passYrds, err := strconv.Atoi(splitLine[6])
+	if len(splitLine) == 17 {
+		passYrds, err := strconv.ParseFloat(splitLine[6], 32)
 		if err != nil {
 			return PlayerStats{}, fmt.Errorf("%s: %w", "cannot convert csv line to player", err)
 		}
@@ -346,7 +347,7 @@ func parseCSVLine(line string) (PlayerStats, error) {
 		if err != nil {
 			return PlayerStats{}, fmt.Errorf("%s: %w", "cannot convert csv line to player", err)
 		}
-		RushYrds, err := strconv.Atoi(splitLine[8])
+		RushYrds, err := strconv.ParseFloat(splitLine[8], 32)
 		if err != nil {
 			return PlayerStats{}, fmt.Errorf("%s: %w", "cannot convert csv line to player", err)
 		}
@@ -358,7 +359,7 @@ func parseCSVLine(line string) (PlayerStats, error) {
 		if err != nil {
 			return PlayerStats{}, fmt.Errorf("%s: %w", "cannot convert csv line to player", err)
 		}
-		RecYrds, err := strconv.Atoi(splitLine[11])
+		RecYrds, err := strconv.ParseFloat(splitLine[11], 32)
 		if err != nil {
 			return PlayerStats{}, fmt.Errorf("%s: %w", "cannot convert csv line to player", err)
 		}
@@ -382,20 +383,19 @@ func parseCSVLine(line string) (PlayerStats, error) {
 		if err != nil {
 			return PlayerStats{}, fmt.Errorf("%s: %w", "cannot convert csv line to player", err)
 		}
-
 		return PlayerStats{
 			Rank:           splitLine[0],
-			Name:           splitLine[1],
-			LastName:       splitLine[2],
-			FirstName:      splitLine[3],
+			Name:           regexp.MustCompile(`(?m)"(.*?)"`).FindStringSubmatch(line)[1],
+			LastName:       regexp.MustCompile(`(?m)"(.*?), `).FindStringSubmatch(line)[1],
+			FirstName:      regexp.MustCompile(`(?m), (.*?)"`).FindStringSubmatch(line)[1],
 			Team:           splitLine[4],
 			Position:       splitLine[5],
-			PassYrds:       int16(passYrds),
+			PassYrds:       float32(passYrds),
 			PassTDs:        float32(PassTDs),
-			RushYrds:       int16(RushYrds),
+			RushYrds:       float32(RushYrds),
 			RushTDs:        float32(RushTDs),
 			Recs:           float32(Recs),
-			RecYrds:        int16(RecYrds),
+			RecYrds:        float32(RecYrds),
 			RecTDs:         float32(RecTDs),
 			FieldGoalsMade: float32(FieldGoalsMade),
 			PointsAgainst:  float32(PointsAgainst),
@@ -403,6 +403,5 @@ func parseCSVLine(line string) (PlayerStats, error) {
 			Points:         float32(Points),
 		}, err
 	}
-	fmt.Println([]byte(line))
 	return PlayerStats{}, nil
 }
