@@ -1,6 +1,7 @@
 package web_scraper
 
 import (
+	"bufio"
 	"encoding/xml"
 	"fmt"
 	"github.com/gocolly/colly/v2"
@@ -13,16 +14,18 @@ import (
 )
 
 const (
-	FantasySharksCurrentADPURL         = "https://www.fantasysharks.com/apps/bert/forecasts/adp.php?Position=97&xml=1&adpsort=99&Segment=746"
-	FantasySharksPreviousYearPointsURL = "https://www.fantasysharks.com/apps/bert/stats/points.php?League=-1&Position=99&scoring=3&Segment=717"
-	ADPPlayerStringFormat              = "|%-4s|%-6s|%-35s|%-8s|%-4s|%-3s|%-5d|%-4s|%-5s|%-5s|%-6s|\n"
-	PlayerStatFormat                   = "|%-4s|%-35s|%-4s|%-8s|%-10d|%-8d|%-9d|%-8d|%-4d|%-9d|%-8d|%-6d|\n"
-	PlayerStatFormatHeader             = "|%-4s|%-35s|%-4s|%-8s|%-10s|%-8s|%-9s|%-8s|%-4s|%-9s|%-8s|%-6s|\n"
+	FantasySharksCurrentADPURL                 = "https://www.fantasysharks.com/apps/bert/forecasts/adp.php?Position=97&xml=1&adpsort=99&Segment=746"
+	FantasySharksPreviousYearPointsURL         = "https://www.fantasysharks.com/apps/bert/stats/points.php?League=-1&Position=99&scoring=3&Segment=717"
+	FantasySharksCurrentYearProjectedPointsURL = "https://www.fantasysharks.com/apps/bert/forecasts/projections.php?csv=1&Sort=&Segment=746&Position=99&scoring=3&League=-1&uid=4&uid2=&printable="
+	ADPPlayerStringFormat                      = "|%-4s|%-6s|%-35s|%-8s|%-4s|%-3s|%-5d|%-4s|%-5s|%-5s|%-6s|\n"
+	PlayerStatFormat                           = "|%-4s|%-35s|%-4s|%-8s|%-10d|%-8d|%-9d|%-8d|%-4d|%-9d|%-8d|%-6d|\n"
+	PlayerStatFormatHeader                     = "|%-4s|%-35s|%-4s|%-8s|%-10s|%-8s|%-9s|%-8s|%-4s|%-9s|%-8s|%-6s|\n"
 )
 
 type WebScraper interface {
 	GetAverageDraftPickList(url string) (Adp, error)
-	GetTotalPlayerPoints(url string) ([]PlayerStats, error)
+	GetTotalPlayerPointsLastYear(url string) ([]PlayerStats, error)
+	GetTotalPlayerPointsProjected(url string) ([]PlayerStats, error)
 }
 
 type WebScraperImpl struct {
@@ -59,16 +62,16 @@ type PlayerStats struct {
 	Team           string
 	Position       string
 	PassYrds       int16
-	PassTDs        int8
+	PassTDs        float32
 	RushYrds       int16
-	RushTDs        int8
-	Recs           int8
+	RushTDs        float32
+	Recs           float32
 	RecYrds        int16
-	RecTDs         int8
-	FieldGoalsMade int8
-	PointsAgainst  int16
-	Tackles        int16
-	Points         int16
+	RecTDs         float32
+	FieldGoalsMade float32
+	PointsAgainst  float32
+	Tackles        float32
+	Points         float32
 }
 
 func (w *WebScraperImpl) GetAverageDraftPickList(myUrl string) (Adp, error) {
@@ -98,6 +101,7 @@ func (w *WebScraperImpl) GetAverageDraftPickList(myUrl string) (Adp, error) {
 		return Adp{}, fmt.Errorf("recieved status code: %d", resp.StatusCode)
 	}
 	reader := cbrotli.NewReader(resp.Body)
+
 	decoder := xml.NewDecoder(reader)
 	decoder.CharsetReader = charset.NewReaderLabel
 	err = decoder.Decode(&adp)
@@ -107,14 +111,65 @@ func (w *WebScraperImpl) GetAverageDraftPickList(myUrl string) (Adp, error) {
 	}
 
 	for i, player := range adp.Players {
-		massagePlayerData(&player)
+		massageADPPlayerData(&player)
 		adp.Players[i] = player
 	}
 
 	return adp, nil
 }
 
-func (w *WebScraperImpl) GetTotalPlayerPoints(url string) ([]PlayerStats, error) {
+func (w *WebScraperImpl) GetTotalPlayerPointsProjected(myUrl string) ([]PlayerStats, error) {
+	players := make([]PlayerStats, 0)
+	request, err := http.NewRequest(http.MethodGet, myUrl, nil)
+	if err != nil {
+		return players, err
+	}
+	request.Header.Set("Accept", "*/*")
+	request.Header.Set("Accept-Encoding", "br")
+	request.Header.Set("Cookie", "phpbb3_54dir_u=1; phpbb3_54dir_k=; PHPSESSID=925c3f786cb9acd0f85f16ecb21b5734; phpbb3_54dir_sid=035316db15317149f51fb1a5ac2ddef7; FFTools=1855314257")
+	request.Header.Set("User-Agent", "PostmanRuntime/7.29.2")
+	request.Header.Set("Postman-Token", "67ff4ac2-4ae6-4e83-8939-9926f9df7b7e")
+	request.Header.Set("Connection", "keep-alive")
+	request.Header.Set("Host", "www.fantasysharks.com")
+
+	if err != nil {
+		return players, err
+	}
+	request.Close = true
+	resp, err := w.Client.Do(request)
+	if err != nil {
+		fmt.Println("error on do")
+		return players, err
+	}
+	if resp.StatusCode != http.StatusOK {
+		return players, fmt.Errorf("recieved status code: %d", resp.StatusCode)
+	}
+	reader := cbrotli.NewReader(resp.Body)
+
+	bufReader := bufio.NewReader(reader)
+	var line string
+	var eof error
+	i := 0
+	for ; eof == nil; line, eof = bufReader.ReadString('\n') {
+		if i == 0 {
+			i++
+			continue
+		}
+
+		if line != "" {
+			if player, parseErr := parseCSVLine(line); err != nil {
+				return nil, parseErr
+			} else {
+				massagePlayerStatData(&player)
+				players = append(players, player)
+			}
+		}
+	}
+
+	return players, nil
+}
+
+func (w *WebScraperImpl) GetTotalPlayerPointsLastYear(url string) ([]PlayerStats, error) {
 	var playerStats []PlayerStats
 	collector := colly.NewCollector()
 
@@ -153,11 +208,11 @@ func (w *WebScraperImpl) GetTotalPlayerPoints(url string) ([]PlayerStats, error)
 				player.PassYrds = int16(number)
 				break
 			case 5:
-				number, err := strconv.Atoi(element.Text)
+				number, err := strconv.ParseFloat(element.Text, 32)
 				if err != nil {
 					fmt.Println("cannot convert text")
 				}
-				player.PassTDs = int8(number)
+				player.PassTDs = float32(number)
 				break
 			case 6:
 				number, err := strconv.Atoi(element.Text)
@@ -167,18 +222,18 @@ func (w *WebScraperImpl) GetTotalPlayerPoints(url string) ([]PlayerStats, error)
 				player.RushYrds = int16(number)
 				break
 			case 7:
-				number, err := strconv.Atoi(element.Text)
+				number, err := strconv.ParseFloat(element.Text, 32)
 				if err != nil {
 					fmt.Println("cannot convert text")
 				}
-				player.RushTDs = int8(number)
+				player.RushTDs = float32(number)
 				break
 			case 8:
-				number, err := strconv.Atoi(element.Text)
+				number, err := strconv.ParseFloat(element.Text, 32)
 				if err != nil {
 					fmt.Println("cannot convert text")
 				}
-				player.Recs = int8(number)
+				player.Recs = float32(number)
 				break
 			case 9:
 				number, err := strconv.Atoi(element.Text)
@@ -188,39 +243,39 @@ func (w *WebScraperImpl) GetTotalPlayerPoints(url string) ([]PlayerStats, error)
 				player.RecYrds = int16(number)
 				break
 			case 10:
-				number, err := strconv.Atoi(element.Text)
+				number, err := strconv.ParseFloat(element.Text, 32)
 				if err != nil {
 					fmt.Println("cannot convert text")
 				}
-				player.RecTDs = int8(number)
+				player.RecTDs = float32(number)
 				break
 			case 11:
-				number, err := strconv.Atoi(element.Text)
+				number, err := strconv.ParseFloat(element.Text, 32)
 				if err != nil {
 					fmt.Println("cannot convert text")
 				}
-				player.FieldGoalsMade = int8(number)
+				player.FieldGoalsMade = float32(number)
 				break
 			case 12:
-				number, err := strconv.Atoi(element.Text)
+				number, err := strconv.ParseFloat(element.Text, 32)
 				if err != nil {
 					fmt.Println("cannot convert text")
 				}
-				player.PointsAgainst = int16(number)
+				player.PointsAgainst = float32(number)
 				break
 			case 13:
-				number, err := strconv.Atoi(element.Text)
+				number, err := strconv.ParseFloat(element.Text, 32)
 				if err != nil {
 					fmt.Println("cannot convert text")
 				}
-				player.Tackles = int16(number)
+				player.Tackles = float32(number)
 				break
 			case 14:
-				number, err := strconv.Atoi(element.Text)
+				number, err := strconv.ParseFloat(element.Text, 32)
 				if err != nil {
 					fmt.Println("cannot convert text")
 				}
-				player.Points = int16(number)
+				player.Points = float32(number)
 				massagePlayerStats(player)
 				playerStats = append(playerStats, *player)
 				break
@@ -228,8 +283,10 @@ func (w *WebScraperImpl) GetTotalPlayerPoints(url string) ([]PlayerStats, error)
 			return true
 		})
 	})
-
-	collector.Visit(url)
+	fmt.Println(url)
+	if err := collector.Visit(url); err != nil {
+		fmt.Printf("%v\n", err)
+	}
 
 	return playerStats, nil
 }
@@ -264,9 +321,88 @@ func massagePlayerStats(player *PlayerStats) {
 		player.FirstName = nameParts[1]
 	}
 }
-func massagePlayerData(player *ADPPlayer) {
+func massageADPPlayerData(player *ADPPlayer) {
 	if nameParts := strings.Split(player.FullName, ","); len(nameParts) > 1 {
 		player.LastName = nameParts[0]
 		player.FirstName = nameParts[1]
 	}
+}
+
+func massagePlayerStatData(player *PlayerStats) {
+	if nameParts := strings.Split(player.Name, ","); len(nameParts) > 1 {
+		player.LastName = nameParts[0]
+		player.FirstName = nameParts[1]
+	}
+}
+
+func parseCSVLine(line string) (PlayerStats, error) {
+	splitLine := strings.Split(line, ",")
+	if len(splitLine) == 18 {
+		passYrds, err := strconv.Atoi(splitLine[6])
+		if err != nil {
+			return PlayerStats{}, fmt.Errorf("%s: %w", "cannot convert csv line to player", err)
+		}
+		PassTDs, err := strconv.ParseFloat(splitLine[7], 32)
+		if err != nil {
+			return PlayerStats{}, fmt.Errorf("%s: %w", "cannot convert csv line to player", err)
+		}
+		RushYrds, err := strconv.Atoi(splitLine[8])
+		if err != nil {
+			return PlayerStats{}, fmt.Errorf("%s: %w", "cannot convert csv line to player", err)
+		}
+		RushTDs, err := strconv.ParseFloat(splitLine[9], 32)
+		if err != nil {
+			return PlayerStats{}, fmt.Errorf("%s: %w", "cannot convert csv line to player", err)
+		}
+		Recs, err := strconv.ParseFloat(splitLine[10], 32)
+		if err != nil {
+			return PlayerStats{}, fmt.Errorf("%s: %w", "cannot convert csv line to player", err)
+		}
+		RecYrds, err := strconv.Atoi(splitLine[11])
+		if err != nil {
+			return PlayerStats{}, fmt.Errorf("%s: %w", "cannot convert csv line to player", err)
+		}
+		RecTDs, err := strconv.ParseFloat(splitLine[12], 32)
+		if err != nil {
+			return PlayerStats{}, fmt.Errorf("%s: %w", "cannot convert csv line to player", err)
+		}
+		FieldGoalsMade, err := strconv.ParseFloat(splitLine[13], 32)
+		if err != nil {
+			return PlayerStats{}, fmt.Errorf("%s: %w", "cannot convert csv line to player", err)
+		}
+		PointsAgainst, err := strconv.ParseFloat(splitLine[14], 32)
+		if err != nil {
+			return PlayerStats{}, fmt.Errorf("%s: %w", "cannot convert csv line to player", err)
+		}
+		Tackles, err := strconv.ParseFloat(splitLine[15], 32)
+		if err != nil {
+			return PlayerStats{}, fmt.Errorf("%s: %w", "cannot convert csv line to player", err)
+		}
+		Points, err := strconv.ParseFloat(splitLine[16], 32)
+		if err != nil {
+			return PlayerStats{}, fmt.Errorf("%s: %w", "cannot convert csv line to player", err)
+		}
+
+		return PlayerStats{
+			Rank:           splitLine[0],
+			Name:           splitLine[1],
+			LastName:       splitLine[2],
+			FirstName:      splitLine[3],
+			Team:           splitLine[4],
+			Position:       splitLine[5],
+			PassYrds:       int16(passYrds),
+			PassTDs:        float32(PassTDs),
+			RushYrds:       int16(RushYrds),
+			RushTDs:        float32(RushTDs),
+			Recs:           float32(Recs),
+			RecYrds:        int16(RecYrds),
+			RecTDs:         float32(RecTDs),
+			FieldGoalsMade: float32(FieldGoalsMade),
+			PointsAgainst:  float32(PointsAgainst),
+			Tackles:        float32(Tackles),
+			Points:         float32(Points),
+		}, err
+	}
+	fmt.Println([]byte(line))
+	return PlayerStats{}, nil
 }

@@ -10,7 +10,8 @@ import (
 )
 
 type Logic interface {
-	GetPlayers(ctx context.Context) (player_proto.Players, error)
+	GetPlayersByPreviousYearPoints(ctx context.Context) (player_proto.Players, error)
+	GetPlayersByCurrentYearProjections(ctx context.Context) (player_proto.Players, error)
 }
 
 type LogicImpl struct {
@@ -25,13 +26,33 @@ func NewLogicImpl(webScraper ws.WebScraper, logger *log.Logger) *LogicImpl {
 	}
 }
 
-func (logic *LogicImpl) GetPlayers(ctx context.Context) (player_proto.Players, error) {
+func (logic *LogicImpl) GetPlayersByPreviousYearPoints(ctx context.Context) (player_proto.Players, error) {
 	adpList, err := logic.webScraper.GetAverageDraftPickList(ws.FantasySharksCurrentADPURL)
 	if err != nil {
 		logic.logger.Println("error in retrieving adp list.")
 		return player_proto.Players{}, fmt.Errorf("error in retrieving adp list")
 	}
 	playerPoints, err := logic.webScraper.GetTotalPlayerPoints(ws.FantasySharksPreviousYearPointsURL)
+	if err != nil {
+		logic.logger.Println("error in retrieving point list.")
+		return player_proto.Players{}, fmt.Errorf("error in retrieving point list")
+	}
+
+	adpMap := ConvertADPSliceToMap(adpList.Players)
+	playerPointsMap := ConvertPlayerStatsSliceToMap(playerPoints)
+	players, _ := DraftPicksAndStatsToPlayerProtos(adpMap, playerPointsMap, 170)
+	sort.Sort(ByLastNameDesc(players))
+	proto := player_proto.Players{Players: players}
+	return proto, nil
+}
+
+func (logic *LogicImpl) GetPlayersByCurrentYearProjections(ctx context.Context) (player_proto.Players, error) {
+	adpList, err := logic.webScraper.GetAverageDraftPickList(ws.FantasySharksCurrentADPURL)
+	if err != nil {
+		logic.logger.Println("error in retrieving adp list.")
+		return player_proto.Players{}, fmt.Errorf("error in retrieving adp list")
+	}
+	playerPoints, err := logic.webScraper.GetTotalPlayerPoints(ws.FantasySharksCurrentYearProjectedPointsURL)
 	if err != nil {
 		logic.logger.Println("error in retrieving point list.")
 		return player_proto.Players{}, fmt.Errorf("error in retrieving point list")

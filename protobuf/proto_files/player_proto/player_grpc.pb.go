@@ -23,7 +23,8 @@ const _ = grpc.SupportPackageIsVersion7
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type DraftPickServiceClient interface {
-	GetPlayers(ctx context.Context, in *emptypb.Empty, opts ...grpc.CallOption) (*Players, error)
+	GetPlayersByPreviousYearPoints(ctx context.Context, in *emptypb.Empty, opts ...grpc.CallOption) (*Players, error)
+	GetPlayersByCurrentYearProjections(ctx context.Context, in *emptypb.Empty, opts ...grpc.CallOption) (*Players, error)
 }
 
 type draftPickServiceClient struct {
@@ -34,9 +35,18 @@ func NewDraftPickServiceClient(cc grpc.ClientConnInterface) DraftPickServiceClie
 	return &draftPickServiceClient{cc}
 }
 
-func (c *draftPickServiceClient) GetPlayers(ctx context.Context, in *emptypb.Empty, opts ...grpc.CallOption) (*Players, error) {
+func (c *draftPickServiceClient) GetPlayersByPreviousYearPoints(ctx context.Context, in *emptypb.Empty, opts ...grpc.CallOption) (*Players, error) {
 	out := new(Players)
-	err := c.cc.Invoke(ctx, "/player_proto.DraftPickService/GetPlayers", in, out, opts...)
+	err := c.cc.Invoke(ctx, "/player_proto.DraftPickService/GetPlayersByPreviousYearPoints", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *draftPickServiceClient) GetPlayersByCurrentYearProjections(ctx context.Context, in *emptypb.Empty, opts ...grpc.CallOption) (*Players, error) {
+	out := new(Players)
+	err := c.cc.Invoke(ctx, "/player_proto.DraftPickService/GetPlayersByCurrentYearProjections", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -47,7 +57,8 @@ func (c *draftPickServiceClient) GetPlayers(ctx context.Context, in *emptypb.Emp
 // All implementations must embed UnimplementedDraftPickServiceServer
 // for forward compatibility
 type DraftPickServiceServer interface {
-	GetPlayers(context.Context, *emptypb.Empty) (*Players, error)
+	GetPlayersByPreviousYearPoints(context.Context, *emptypb.Empty) (*Players, error)
+	GetPlayersByCurrentYearProjections(context.Context, *emptypb.Empty) (*Players, error)
 	mustEmbedUnimplementedDraftPickServiceServer()
 }
 
@@ -55,8 +66,11 @@ type DraftPickServiceServer interface {
 type UnimplementedDraftPickServiceServer struct {
 }
 
-func (UnimplementedDraftPickServiceServer) GetPlayers(context.Context, *emptypb.Empty) (*Players, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method GetPlayers not implemented")
+func (UnimplementedDraftPickServiceServer) GetPlayersByPreviousYearPoints(context.Context, *emptypb.Empty) (*Players, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetPlayersByPreviousYearPoints not implemented")
+}
+func (UnimplementedDraftPickServiceServer) GetPlayersByCurrentYearProjections(context.Context, *emptypb.Empty) (*Players, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetPlayersByCurrentYearProjections not implemented")
 }
 func (UnimplementedDraftPickServiceServer) mustEmbedUnimplementedDraftPickServiceServer() {}
 
@@ -71,20 +85,38 @@ func RegisterDraftPickServiceServer(s grpc.ServiceRegistrar, srv DraftPickServic
 	s.RegisterService(&DraftPickService_ServiceDesc, srv)
 }
 
-func _DraftPickService_GetPlayers_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+func _DraftPickService_GetPlayersByPreviousYearPoints_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(emptypb.Empty)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(DraftPickServiceServer).GetPlayers(ctx, in)
+		return srv.(DraftPickServiceServer).GetPlayersByPreviousYearPoints(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/player_proto.DraftPickService/GetPlayers",
+		FullMethod: "/player_proto.DraftPickService/GetPlayersByPreviousYearPoints",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(DraftPickServiceServer).GetPlayers(ctx, req.(*emptypb.Empty))
+		return srv.(DraftPickServiceServer).GetPlayersByPreviousYearPoints(ctx, req.(*emptypb.Empty))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _DraftPickService_GetPlayersByCurrentYearProjections_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(emptypb.Empty)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(DraftPickServiceServer).GetPlayersByCurrentYearProjections(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/player_proto.DraftPickService/GetPlayersByCurrentYearProjections",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(DraftPickServiceServer).GetPlayersByCurrentYearProjections(ctx, req.(*emptypb.Empty))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -97,8 +129,12 @@ var DraftPickService_ServiceDesc = grpc.ServiceDesc{
 	HandlerType: (*DraftPickServiceServer)(nil),
 	Methods: []grpc.MethodDesc{
 		{
-			MethodName: "GetPlayers",
-			Handler:    _DraftPickService_GetPlayers_Handler,
+			MethodName: "GetPlayersByPreviousYearPoints",
+			Handler:    _DraftPickService_GetPlayersByPreviousYearPoints_Handler,
+		},
+		{
+			MethodName: "GetPlayersByCurrentYearProjections",
+			Handler:    _DraftPickService_GetPlayersByCurrentYearProjections_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

@@ -11,7 +11,7 @@ import (
 type Player struct {
 	DraftPick  web_scraper.ADPPlayer
 	Key        PlayerKey
-	PointTotal int16
+	PointTotal float32
 	Value      float32
 }
 
@@ -50,7 +50,7 @@ func DraftPickAndStatsToPlayer(draftPick web_scraper.ADPPlayer, stat web_scraper
 		DraftPick:  draftPick,
 		PointTotal: stat.Points,
 		Key:        draftKey,
-		Value:      float32(stat.Points) / float32(picksInDraft) / float32(convertedADP),
+		Value:      stat.Points / float32(picksInDraft) / float32(convertedADP),
 	}, nil
 }
 

@@ -18,12 +18,20 @@ func NewADPServer(logic service.Logic) *ADPServer {
 	}
 }
 
-func (s ADPServer) GetPlayers(ctx context.Context, _ *emptypb.Empty) (*player_proto.Players, error) {
-	players, err := s.logic.GetPlayers(ctx)
+func (s ADPServer) GetPlayersByPreviousYearPoints(ctx context.Context, _ *emptypb.Empty) (*player_proto.Players, error) {
+	players, err := s.logic.GetPlayersByPreviousYearPoints(ctx)
 	if err != nil {
 		return nil, err
 	}
 
 	return &players, err
+}
 
+func (s ADPServer) GetPlayersByCurrentYearProjections(ctx context.Context, _ *emptypb.Empty) (*player_proto.Players, error) {
+	players, err := s.logic.GetPlayersByPreviousYearPoints(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	return &players, err
 }

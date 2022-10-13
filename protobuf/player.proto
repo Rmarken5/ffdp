@@ -24,6 +24,7 @@ message Players {
 }
 
 service DraftPickService {
-  rpc GetPlayers (google.protobuf.Empty) returns (player_proto.Players);
+  rpc GetPlayersByPreviousYearPoints (google.protobuf.Empty) returns (player_proto.Players);
+  rpc GetPlayersByCurrentYearProjections (google.protobuf.Empty) returns (player_proto.Players);
 }
 
